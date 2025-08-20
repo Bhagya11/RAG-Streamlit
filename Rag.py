@@ -8,7 +8,7 @@ from langchain_core.embeddings import Embeddings
 import google.generativeai as genai
 
 # === Configure Gemini API Key (Streamlit Secrets) ===
-GEMINI_API_KEY = st.secrets.get("AIzaSyAJoievCdhnH4VUJjTVZ-Vkp1J3v1D53ao")
+GEMINI_API_KEY = os.getenv("GEMINI_API_KEY","AIzaSyAJoievCdhnH4VUJjTVZ-Vkp1J3v1D53ao")
 if not GEMINI_API_KEY:
     st.error("❌ GEMINI_API_KEY not found. Please set it in Streamlit secrets.")
     st.stop()
@@ -115,4 +115,5 @@ Answer:
         finally:
             if 'tmp_file_path' in locals() and os.path.exists(tmp_file_path):
                 os.remove(tmp_file_path)
+
 
