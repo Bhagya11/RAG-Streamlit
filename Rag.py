@@ -7,10 +7,10 @@ from langchain_community.vectorstores import FAISS
 from langchain_core.embeddings import Embeddings
 import google.generativeai as genai
 
-# === Configure Gemini API Key (Streamlit Secrets) ===
-GEMINI_API_KEY = os.getenv("GEMINI_API_KEY","AIzaSyAJoievCdhnH4VUJjTVZ-Vkp1J3v1D53ao")
+# === Configure Gemini API Key (Streamlit Secrets or Env Var) ===
+GEMINI_API_KEY = os.getenv("GEMINI_API_KEY", "YOUR_FALLBACK_API_KEY")
 if not GEMINI_API_KEY:
-    st.error("❌ GEMINI_API_KEY not found. Please set it in Streamlit secrets.")
+    st.error("❌ GEMINI_API_KEY not found. Please set it in Streamlit secrets or environment variables.")
     st.stop()
 genai.configure(api_key=GEMINI_API_KEY)
 
@@ -100,9 +100,19 @@ Answer:
             model = genai.GenerativeModel("gemini-2.5-pro")
             response = model.generate_content(prompt)
 
+            # === Safely Extract Answer ===
+            answer = ""
+            if response and response.candidates:
+                for candidate in response.candidates:
+                    if candidate.content.parts:
+                        answer = "".join(
+                            [part.text for part in candidate.content.parts if hasattr(part, "text")]
+                        )
+                        break  # take first valid candidate
+
             # === Display Answer ===
             st.markdown("### 📘 Answer")
-            st.write(response.text if response else "⚠️ No answer generated.")
+            st.write(answer if answer else "⚠️ No answer generated. Try rephrasing your question or check API quota.")
 
             # === Optional: Show Retrieved Chunks ===
             with st.expander("📄 Show retrieved context chunks"):
@@ -110,10 +120,12 @@ Answer:
                     st.markdown(f"**Chunk {i+1} (Source: Page {doc.metadata.get('page', 'N/A')})**")
                     st.info(doc.page_content)
 
+            # === Debug Raw Response ===
+            with st.expander("🛠 Debug Raw Gemini Response"):
+                st.json(response.to_dict())
+
         except Exception as e:
             st.error(f"❌ An error occurred: {e}")
         finally:
             if 'tmp_file_path' in locals() and os.path.exists(tmp_file_path):
                 os.remove(tmp_file_path)
-
-
